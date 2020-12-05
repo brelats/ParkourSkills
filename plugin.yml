@@ -1,0 +1,11 @@
+name: ParkourSkills
+version: 1.0
+main: me.skilled.parkourskills.main.Main
+description: Add parkour movements to Minecraft
+author: Skilled
+api-version: 1.14
+commands:
+    securitycams:
+      usage: /<command>
+      aliases: 
+        - pk
