@@ -2,6 +2,7 @@ package me.skilled.parkourskills.events;
 
 
 import me.skilled.parkourskills.configuration.ParkourConfig;
+import me.skilled.parkourskills.configuration.ParkourPerms;
 import org.bukkit.*;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -36,39 +37,41 @@ public class ParkourMovement implements Listener
             {
                 plugin.getServer().getOnlinePlayers().forEach(player -> {
 
+                    if( !player.hasPermission( ParkourPerms.canParkour )) return;
+
                     // When player jumps and it's not flying
-                    if(!((LivingEntity) player).isOnGround() && !player.getGameMode().equals(GameMode.CREATIVE))
+                    if(!((LivingEntity) player).isOnGround() && !player.getGameMode().equals(GameMode.CREATIVE) && !player.getGameMode().equals(GameMode.SPECTATOR))
                     {
                         // If player shift
                         if (player.isSneaking())
                         {
                             // If player's on the same wall as before
                             if( !ParkourConfig.canClimbSameWall )
-                            if( checkIfIsSameWall(player) ) return;
+                                if( checkIfIsSameWall(player) ) return;
 
                             if( ParkourConfig.canSlideWall )
                                 if( isPlayerHolding(player)  && !playerTaskIDs.containsKey(player) ) startSliding(player);
 
 
                             // There's a excluded block in front of player
-                           for(Material material: ParkourConfig.excludedBlocks)
-                           {
-                               if(checkTargetBlock(player, material))
-                               {
-                                   dropPlayerFromHolding(player, true);
-                                   return;
-                               }
-                           }
-                           dropPlayerFromHolding(player, false);
+                            for(Material material: ParkourConfig.excludedBlocks)
+                            {
+                                if(checkTargetBlock(player, material))
+                                {
+                                    dropPlayerFromHolding(player, true);
+                                    return;
+                                }
+                            }
+                            dropPlayerFromHolding(player, false);
 
-                           // If player move to much we drop from holding place
-                           if( isPlayerHolding(player) )
-                           {
+                            // If player move to much we drop from holding place
+                            if( isPlayerHolding(player) )
+                            {
                                 if(player.getLocation().distance(playerHoldingToWall.get(player)) > 0f)
                                 {
                                     dropPlayerFromHolding(player, true);
                                 }
-                           }
+                            }
                         }
 
                         // On release sneak, we will make another jump
