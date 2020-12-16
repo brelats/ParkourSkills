@@ -4,11 +4,13 @@ package me.skilled.parkourskills.events;
 import me.skilled.parkourskills.configuration.ParkourConfig;
 import me.skilled.parkourskills.configuration.ParkourPerms;
 import org.bukkit.*;
+import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.Hash;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
@@ -23,6 +25,8 @@ public class ParkourMovement implements Listener
     private final HashMap<Player, Location> playerLastPosition = new HashMap<>();
     // Store all tasks id to once dropped, stop it
     private final HashMap<Player, Integer> playerTaskIDs = new HashMap<>();
+    // Store if player rolled
+    private final HashMap<Player, Boolean> playerRolled = new HashMap<>();
 
     private Plugin plugin;
 
@@ -38,6 +42,15 @@ public class ParkourMovement implements Listener
                 plugin.getServer().getOnlinePlayers().forEach(player -> {
 
                     if( !player.hasPermission( ParkourPerms.canParkour )) return;
+
+                    // Check if player is wearing elytra
+                    if( player.getInventory().getChestplate() != null && player.getInventory().getChestplate().getType().equals( Material. ELYTRA ) )
+                        return;
+
+
+                    if( ( (LivingEntity) player).isOnGround() && playerRolled.containsKey( player ))
+                        playerRoll( player, false);
+
 
                     // When player jumps and it's not flying
                     if(!((LivingEntity) player).isOnGround() && !player.getGameMode().equals(GameMode.CREATIVE) && !player.getGameMode().equals(GameMode.SPECTATOR))
@@ -98,6 +111,41 @@ public class ParkourMovement implements Listener
     private void playerDisconnectEvent(PlayerQuitEvent event)
     {
         restartParkourCounter( event.getPlayer() );
+    }
+
+    @EventHandler
+    private void playerShiftEvent(PlayerToggleSneakEvent event)
+    {
+        Player player = event.getPlayer();
+        // If player hasn't perms of rolling
+        if( !player.hasPermission( ParkourPerms.canRoll ) ) return;
+
+        if( event.isSneaking() && !(( LivingEntity ) player).isOnGround())
+        {
+            Location belowPlayer = new Location( player.getWorld(), player.getLocation().getX(), player.getLocation().getY() - 2, player.getLocation().getZ() );
+            if( !player.getWorld().getBlockAt( belowPlayer ).getType().equals( Material.AIR ) )
+            {
+               // Player roll effect
+               playerRoll( player, true);
+            }
+        }
+    }
+
+    private void playerRoll( Player player, boolean rolled )
+    {
+        if( rolled )
+        {
+            playerRolled.put( player, true );
+            player.setInvulnerable( true );
+            return;
+        }
+
+        if( playerRolled.containsKey( player ) )
+        {
+            player.setInvulnerable( false );
+            playerRolled.remove( player );
+        }
+
     }
 
     // Check players target block
