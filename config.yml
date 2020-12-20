@@ -1,5 +1,7 @@
-second_jump_force: 2 # Has to be a integer
+second_jump_force: 0.5 # Second jump force
 can_climb_same_wall: false # Player can wall-jump the same wall
 slide_wall: true # Drop player of a wall when he's stopped
 holding_time: 2 # If slide_wall is true, this option will work. Time that player can stay holding to a wall
 excluded_blocks: "" # The correct form is "STONE, OAK_LEAVES", all that you want. You can check all block ids here: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Material.html
+wall_run_gravity: 0.03 # This gravity will affect when player wall runs
+wall_run_distance_from_wall: 0.50
