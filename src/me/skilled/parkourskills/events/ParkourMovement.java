@@ -1,16 +1,19 @@
 package me.skilled.parkourskills.events;
 
 
+import javafx.util.Pair;
 import me.skilled.parkourskills.configuration.ParkourConfig;
 import me.skilled.parkourskills.configuration.ParkourPerms;
 import org.bukkit.*;
-import org.bukkit.craftbukkit.libs.it.unimi.dsi.fastutil.Hash;
+import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
+import org.bukkit.event.player.PlayerToggleSprintEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
@@ -29,6 +32,8 @@ public class ParkourMovement implements Listener
     private final HashMap<Player, Boolean> playerRolled = new HashMap<>();
 
     private Plugin plugin;
+
+    private final double WALLRUNNING_SPEED = .35f;
 
     //TODO: PARKOUR ONLY WORKS ON SURVIVAL MODE
 
@@ -111,6 +116,7 @@ public class ParkourMovement implements Listener
     private void playerDisconnectEvent(PlayerQuitEvent event)
     {
         restartParkourCounter( event.getPlayer() );
+        playerFall( event.getPlayer(), true );
     }
 
     @EventHandler
@@ -131,8 +137,85 @@ public class ParkourMovement implements Listener
         }
     }
 
+
+    @EventHandler
+    private void playerMoveEvent( PlayerMoveEvent event )
+    {
+        Player player = event.getPlayer();
+
+        // User has to have permissions or op
+        if( !player.hasPermission( ParkourPerms.canWallRun ) && !player.isOp() ) return;
+        // Gamemode has to be Survival
+        if( !player.getGameMode().equals( GameMode.SURVIVAL ) ) return;
+        // Has to be sprinting
+        if( !player.isSprinting() )
+        {
+            playerFall( player, true);
+            return;
+        }
+        // Cannot be on ground
+        if( ((LivingEntity)player).isOnGround()) return;
+
+        // Check that there's a block on a side
+        if(  getLeftAndRightBlocks( player ).getKey().getType().equals( Material.AIR ) && getLeftAndRightBlocks( player ).getValue().getType().equals( Material.AIR ))
+        {
+            playerFall( player, true);
+            return;
+        }
+        // Check excluded blocks
+        for( Material mat : ParkourConfig.excludedBlocks )
+        {
+            // Check if null because of config.yml
+            if( mat == null) continue;
+            // Air checking was before, we won't have problems with this
+            if( mat.equals( Material.AIR ) ) continue;
+
+            // If user has an excluded block on a side, will fall
+            if(  getLeftAndRightBlocks( player ).getKey().getType().equals( mat ) || getLeftAndRightBlocks( player ).getValue().getType().equals( mat ))
+            {
+                playerFall( player, true);
+                return;
+            }
+
+        }
+
+        // Player wall-run
+        playerFall( player, false);
+
+    }
+
+    private Pair<Block, Block> getLeftAndRightBlocks(Player player )
+    {
+        double distance = ParkourConfig.wallRunDistanceFromWall;
+        // Right
+        final float rightNewZ = (float)(player.getLocation().getZ() + ( -distance * Math.sin(Math.toRadians(player.getLocation().getYaw()))));
+        final float rightNewX = (float)(player.getLocation().getX() + ( -distance * Math.cos(Math.toRadians(player.getLocation().getYaw()))));
+
+        // Left
+        final float leftNewZ = (float)(player.getLocation().getZ() + ( distance * Math.sin(Math.toRadians(player.getLocation().getYaw()))));
+        final float leftNewX = (float)(player.getLocation().getX() + ( distance * Math.cos(Math.toRadians(player.getLocation().getYaw()))));
+
+        Block rightBlock = player.getWorld().getBlockAt( new Location( player.getWorld(), rightNewX, player.getLocation().getY() + 1, rightNewZ ) );
+        Block leftBlock = player.getWorld().getBlockAt( new Location( player.getWorld(), leftNewX, player.getLocation().getY() + 1, leftNewZ ) );
+
+        return new Pair( leftBlock, rightBlock );
+    }
+
+    // Make player fall
+    private void playerFall( Player player, boolean fall )
+    {
+        player.setGravity( fall );
+        player.setAllowFlight( !fall );
+
+        // Add velocity because of gravity disabled player will go slowly
+        if( !fall ) player.setVelocity( new Vector( player.getLocation().getDirection().getX() * WALLRUNNING_SPEED, -ParkourConfig.wallRunGravity, player.getLocation().getDirection().getZ() * WALLRUNNING_SPEED));
+
+    }
+
+    // Player roll effect
     private void playerRoll( Player player, boolean rolled )
     {
+        // If player get roll
         if( rolled )
         {
             playerRolled.put( player, true );
@@ -233,10 +316,8 @@ public class ParkourMovement implements Listener
     // Do the second jump when stop holding
     private void doSecondJump(Player player)
     {
-        Vector playerLocationNormalized = player.getLocation().toVector().normalize();
-        Vector secondJump = playerLocationNormalized.multiply(new Vector(0, ParkourConfig.doubleJumpForce,0));
-
-        player.setVelocity(secondJump);
+        Vector secondJump = player.getVelocity().add( new Vector(0, ParkourConfig.doubleJumpForce, 0) );
+        player.setVelocity( secondJump );
     }
 
     private void cancelTasks(Player player)

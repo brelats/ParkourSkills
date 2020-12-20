@@ -17,6 +17,8 @@ public class ConfigLoader
     public void loadConfig()
     {
         ParkourConfig.doubleJumpForce = plugin.getConfig().getDouble("second_jump_force");
+        ParkourConfig.wallRunGravity = plugin.getConfig().getDouble("wall_run_gravity");
+        ParkourConfig.wallRunDistanceFromWall = plugin.getConfig().getDouble("wall_run_distance_from_wall");
         ParkourConfig.canClimbSameWall = plugin.getConfig().getBoolean("can_climb_same_wall");
         ParkourConfig.canSlideWall = plugin.getConfig().getBoolean("slide_wall");
         ParkourConfig.startSlidingTime = plugin.getConfig().getInt("holding_time");
