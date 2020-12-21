@@ -17,6 +17,8 @@ import org.bukkit.event.player.PlayerToggleSprintEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 
@@ -147,21 +149,24 @@ public class ParkourMovement implements Listener
         if( !player.hasPermission( ParkourPerms.canWallRun ) && !player.isOp() ) return;
         // Gamemode has to be Survival
         if( !player.getGameMode().equals( GameMode.SURVIVAL ) ) return;
+
         // Has to be sprinting
         if( !player.isSprinting() )
         {
             playerFall( player, true);
             return;
         }
+
         // Cannot be on ground
         if( ((LivingEntity)player).isOnGround()) return;
 
         // Check that there's a block on a side
-        if(  getLeftAndRightBlocks( player ).getKey().getType().equals( Material.AIR ) && getLeftAndRightBlocks( player ).getValue().getType().equals( Material.AIR ))
+        if(  getLeftAndRightBlocks( player ).get(0).getType().equals( Material.AIR ) && getLeftAndRightBlocks( player ).get(1).getType().equals( Material.AIR ))
         {
             playerFall( player, true);
             return;
         }
+
         // Check excluded blocks
         for( Material mat : ParkourConfig.excludedBlocks )
         {
@@ -171,7 +176,7 @@ public class ParkourMovement implements Listener
             if( mat.equals( Material.AIR ) ) continue;
 
             // If user has an excluded block on a side, will fall
-            if(  getLeftAndRightBlocks( player ).getKey().getType().equals( mat ) || getLeftAndRightBlocks( player ).getValue().getType().equals( mat ))
+            if(  getLeftAndRightBlocks( player ).get(0).getType().equals( mat ) || getLeftAndRightBlocks( player ).get(1).getType().equals( mat ))
             {
                 playerFall( player, true);
                 return;
@@ -184,7 +189,7 @@ public class ParkourMovement implements Listener
 
     }
 
-    private Pair<Block, Block> getLeftAndRightBlocks(Player player )
+    private ArrayList<Block> getLeftAndRightBlocks(Player player )
     {
         double distance = ParkourConfig.wallRunDistanceFromWall;
         // Right
@@ -198,7 +203,8 @@ public class ParkourMovement implements Listener
         Block rightBlock = player.getWorld().getBlockAt( new Location( player.getWorld(), rightNewX, player.getLocation().getY() + 1, rightNewZ ) );
         Block leftBlock = player.getWorld().getBlockAt( new Location( player.getWorld(), leftNewX, player.getLocation().getY() + 1, leftNewZ ) );
 
-        return new Pair( leftBlock, rightBlock );
+
+        return new ArrayList<>(Arrays.asList(leftBlock, rightBlock));
     }
 
     // Make player fall
